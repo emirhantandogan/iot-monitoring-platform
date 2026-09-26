@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS telemetry (
+    id BIGSERIAL PRIMARY KEY,
+    device_id VARCHAR(100) NOT NULL,
+    temperature DOUBLE PRECISION NOT NULL,
+    humidity DOUBLE PRECISION NOT NULL,
+    recorded_at TIMESTAMPTZ NOT NULL,
+    ingested_at TIMESTAMPTZ NOT NULL,
+    received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+

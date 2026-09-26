@@ -1,0 +1,2 @@
+"""Telemetry ingestion service."""
+

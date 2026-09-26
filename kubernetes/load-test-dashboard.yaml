@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: load-test-dashboard
+  namespace: iot-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: load-test-dashboard
+  template:
+    metadata:
+      labels:
+        app: load-test-dashboard
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: load-test-dashboard
+      containers:
+        - name: load-test-dashboard
+          image: iot-monitoring-app:local
+          imagePullPolicy: IfNotPresent
+          command: ["streamlit"]
+          args:
+            - run
+            - dashboard/load_tests.py
+            - --server.address=0.0.0.0
+            - --server.port=8502
+          envFrom:
+            - configMapRef:
+                name: iot-config
+            - secretRef:
+                name: postgres-secret
+          ports:
+            - name: http
+              containerPort: 8502
+          volumeMounts:
+            - name: results
+              mountPath: /app/results
+          startupProbe:
+            httpGet:
+              path: /_stcore/health
+              port: http
+            periodSeconds: 2
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: results
+          persistentVolumeClaim:
+            claimName: load-test-results
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: load-test-dashboard
+  namespace: iot-monitoring
+spec:
+  selector:
+    app: load-test-dashboard
+  ports:
+    - name: http
+      port: 8502
+      targetPort: http

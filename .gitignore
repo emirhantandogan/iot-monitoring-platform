@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+results/*.json
+docs/benchmarks/
+docs/manual/
+docs/validation/
+iot-monitoring-app.tar
+.env.example
+AGENTS.md
+PROJECT_STATE.md

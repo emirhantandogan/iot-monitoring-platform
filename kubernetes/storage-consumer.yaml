@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage-consumer
+  namespace: iot-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storage-consumer
+  template:
+    metadata:
+      labels:
+        app: storage-consumer
+    spec:
+      enableServiceLinks: false
+      initContainers:
+        - name: wait-for-topic
+          image: apache/kafka:4.3.1
+          command:
+            - sh
+            - -c
+            - until /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --describe --topic telemetry.raw; do sleep 2; done
+      containers:
+        - name: storage-consumer
+          image: iot-monitoring-app:local
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "services.storage_consumer.main"]
+          envFrom:
+            - configMapRef:
+                name: iot-config
+            - secretRef:
+                name: postgres-secret
+          ports:
+            - name: metrics
+              containerPort: 9100
+          livenessProbe:
+            exec:
+              command:
+                - python
+                - -c
+                - "from pathlib import Path; assert b'services.storage_consumer.main' in Path('/proc/1/cmdline').read_bytes()"
+            periodSeconds: 10
+            failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage-consumer
+  namespace: iot-monitoring
+spec:
+  selector:
+    app: storage-consumer
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: metrics
